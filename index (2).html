@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gas Sensor Monitoring Dashboard</title>
+  <style>
+    /* Body & Overall */
+    body {
+      background: linear-gradient(135deg, #e0eafc, #cfdef3);
+      font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 36px;
+      background: linear-gradient(45deg, #0072ff, #00c6ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 40px;
+    }
+
+    /* Cards Layout */
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, #ffffff, #f9f9f9);
+      border-radius: 15px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      width: 480px;
+      transition: all 0.3s ease;
+      border: 2px solid #f0f0f0;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+      border-color: #00c6ff;
+    }
+
+    .card iframe {
+      width: 100%;
+      height: 260px;
+      border: none;
+    }
+
+    .sensor-value {
+      padding: 20px;
+      font-size: 22px;
+      font-weight: 600;
+      text-align: center;
+      background: linear-gradient(45deg, #6a11cb, #2575fc);
+      color: #fff;
+      border-top: 2px solid #e0e0e0;
+      transition: all 0.6s ease;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      position: absolute;
+      top: 40%;
+      left: 45%;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Environment Status */
+    .env-card {
+      margin: 30px auto;
+      width: 500px;
+      padding: 20px;
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+      position: relative;
+      transition: all 0.6s ease;
+    }
+
+    .env-good {
+      color: #27ae60;
+    }
+
+    .env-bad {
+      color: #e74c3c;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 16px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    footer span {
+      color: #0072ff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🌟 AQI METER 🌟</h1>
+
+  <div class="container">
+    <!-- MQ6 Sensor Card -->
+    <div class="card">
+      <iframe src="https://thingspeak.com/channels/2937217/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&type=line&update=15"></iframe>
+      <div class="sensor-value" id="mq6Value">Normal ✅</div>
+      <div class="spinner" id="spinner1"></div>
+    </div>
+
+    <!-- MQ7 Sensor Card -->
+    <div class="card">
+      <iframe src="https://thingspeak.com/channels/2937217/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&type=line&update=15"></iframe>
+      <div class="sensor-value" id="mq7Status">Loading...</div>
+      <div class="spinner" id="spinner2"></div>
+    </div>
+
+    <!-- MQ135 Sensor Card -->
+    <div class="card">
+      <iframe src="https://thingspeak.com/channels/2937217/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&type=line&update=15"></iframe>
+      <div class="sensor-value" id="mq135Status">Loading...</div>
+      <div class="spinner" id="spinner3"></div>
+    </div>
+  </div>
+
+  <!-- Environment Status -->
+  <div class="env-card">
+    <div id="environmentStatus">Checking environment...</div>
+    <div class="spinner" id="spinnerEnv"></div>
+  </div>
+
+  <footer>
+    Made with <span>❤️</span> | Gas Monitoring Project
+  </footer>
+
+  <script>
+    const channelID = "2937217";
+    const readAPIKey = ""; // Optional if public
+
+    const mq6Value = document.getElementById("mq6Value");
+    const mq7Status = document.getElementById("mq7Status");
+    const mq135Status = document.getElementById("mq135Status");
+    const environmentStatus = document.getElementById("environmentStatus");
+
+    const spinner1 = document.getElementById("spinner1");
+    const spinner2 = document.getElementById("spinner2");
+    const spinner3 = document.getElementById("spinner3");
+    const spinnerEnv = document.getElementById("spinnerEnv");
+
+    async function fetchSensorData() {
+      // Show spinners
+      spinner1.style.display = "block";
+      spinner2.style.display = "block";
+      spinner3.style.display = "block";
+      spinnerEnv.style.display = "block";
+
+      try {
+        const url = `https://api.thingspeak.com/channels/${channelID}/feeds/last.json${readAPIKey ? '?api_key=' + readAPIKey : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Animate fade-out
+        setTimeout(() => {
+          mq6Value.style.opacity = 0;
+          mq7Status.style.opacity = 0;
+          mq135Status.style.opacity = 0;
+          environmentStatus.style.opacity = 0;
+        }, 100);
+
+        // Update after fade-out
+        setTimeout(() => {
+          const mq6Reading = data.field1 ? parseFloat(data.field1) : 0;
+          const mq7Reading = data.field2; // Digital value (0 or 1)
+          const mq135Reading = data.field3; // Digital value (0 or 1)
+
+          // MQ6 always shows Normal ✅
+          mq6Value.innerText = "SO2 Value: Normal ✅";
+
+          // MQ7 status logic based on digital value
+          if (mq7Reading == 1) {
+            mq7Status.innerText = "CO Value: HIGH ⚠️"; // HIGH if 0 (dangerous)
+          } else {
+            mq7Status.innerText = "CO Value: NORMAL ✅"; // NORMAL if 1
+          }
+
+          // MQ135 status logic based on digital value
+          if (mq135Reading == 1) {
+            mq135Status.innerText = "LPG Value: HIGH ⚠️"; // HIGH if 0 (dangerous)
+          } else {
+            mq135Status.innerText = "LPG Value: NORMAL ✅"; // NORMAL if 1
+          }
+
+          // Environment Status Logic - Any high gas value means bad
+          if (mq7Reading == 1 || mq135Reading == 1) {
+            environmentStatus.innerText = "Environment Polluted ⚠️";
+            environmentStatus.classList.remove("env-good");
+            environmentStatus.classList.add("env-bad");
+          } else {
+            environmentStatus.innerText = "Environment Good ✅";
+            environmentStatus.classList.remove("env-bad");
+            environmentStatus.classList.add("env-good");
+          }
+
+          mq6Value.style.opacity = 1;
+          mq7Status.style.opacity = 1;
+          mq135Status.style.opacity = 1;
+          environmentStatus.style.opacity = 1;
+        }, 400);
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        // Hide spinners
+        spinner1.style.display = "none";
+        spinner2.style.display = "none";
+        spinner3.style.display = "none";
+        spinnerEnv.style.display = "none";
+      }
+    }
+
+    // Fetch immediately and every 5 seconds
+    fetchSensorData();
+    setInterval(fetchSensorData, 5000);
+  </script>
+
+</body>
+</html>
